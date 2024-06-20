@@ -1,0 +1,15 @@
+,,,,,,,,,,,,,,,,,,,,
+,Layer type,Operation Size,,,,Input,,,,Output,,,,,,,,,,
+,Output Meas,N filters,x_size,y_size,stride,x_size,y_size,Channels,Padding,x_size,y_size,Channels,Params,N MAC,Op,Bytes de Entrada,Bytes de Parámetros,Bytes de Salida,Total Bytes Procesados,Operational Intensity
+,Conv,16,3,3,1,96,96,1,0,94,94,16,160,1272384,2544768,9216,144,141376,150592,8.44921377
+,Pool,,2,2,2,94,94,16,0,47,47,16,0,2262016,106032,141376,0,35344,176720,12.8
+,Conv,32,3,3,1,47,47,16,0,45,45,32,4640,9331200,18662400,35344,4608,64800,100144,93.17782393
+,Pool,,2,2,2,45,45,32,0,23,23,32,0,2073600,48600,64800,0,16200,81000,25.6
+,Conv,64,3,3,1,23,23,32,0,21,21,64,18496,7746048,15492096,16200,18432,26896,43096,179.7393726
+,Pool,,2,2,2,21,21,64,0,10,10,64,0,1721344,20172,26896,0,6724,33620,51.2
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,Layer type,N neurons input,N neurons output,N MAC,Op,Bytes de Entrada,Bytes de Parámetros,Bytes de Salida,Total Bytes Procesados,Operational Intensity,,,,N MAC,Op,Bytes de Entrada,Bytes de Parámetros,Bytes de Salida,Total Bytes Procesados,Operational Intensity
+,FullyConnected,6400,256,1644800,3289600,6400,1638400,256,6656,247.1153846,,,,1644800,3289600,6400,1638400,256,6656,247.1153846
+,FullyConnected,256,128,33024,66048,256,32768,128,384,86,,,,33024,66048,256,32768,128,384,86
+,FullyConnected,128,1,256,512,128,128,1,129,1.984496124,,,,256,512,128,128,1,129,1.984496124
