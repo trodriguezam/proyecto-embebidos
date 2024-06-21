@@ -13,16 +13,25 @@ data_dict = {
 # Convert the dictionary to a DataFrame
 df = pd.DataFrame(data_dict)
 
-# Define bandwidth and peak performance
-peak_performance = 1e10  # 10 GFLOPS
-peak_bandwidth = 1e9  # 1 GB/s
+# Define bandwidth and peak performance based on provided frequency
+Freq = 240e6  # 240 MHz
+
+peak_throughput_ops = Freq  # Peak throughput in operations per second (Ops/s)
+bandwidth_bytes = Freq  # Memory bandwidth in bytes per second
+
+# Define intensity range
+intensity = np.linspace(1e-2, 1e3, 100)  # Operational intensity range
+
+# Calculate the roofline bounds
+roof_memory_bound = intensity * bandwidth_bytes  # Memory-bound performance
+roof_compute_bound = np.ones_like(intensity) * peak_throughput_ops  # Compute-bound performance
 
 # Plotting the Roofline
 plt.figure(figsize=(12, 8))
 
 # Plot Roofline model
-oi = np.logspace(-2, 2, 100)
-plt.plot(oi, np.minimum(oi * peak_bandwidth, peak_performance), label='Roofline', color='red', linewidth=2)
+plt.plot(intensity, roof_memory_bound, label='Memory Bound', color='blue')
+plt.plot(intensity, roof_compute_bound, label='Compute Bound', color='red')
 
 # Scatter plot for the tasks with layer labels
 for i, row in df.iterrows():
@@ -39,7 +48,7 @@ plt.legend()
 plt.grid(True, which="both", ls="--")
 
 # Save the plot as an image file
-output_path = 'roofline_plot.png'
+output_path = 'roofline_plot_borja_edition.png'
 plt.savefig(output_path)
 
 # Display the plot
