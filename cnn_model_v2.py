@@ -5,8 +5,8 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
 import pathlib
 
-train_dir = 'dataset-v2/training'
-validation_dir = 'dataset-v2/validation'
+train_dir = 'dataset-v3/training'
+validation_dir = 'dataset-v3/validation'
 
 model = tf.keras.models.Sequential([
 tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(96, 96, 1)),
@@ -76,6 +76,8 @@ plt.title('Model accuracy')
 plt.ylabel('Accuracy')
 plt.xlabel('Epoch')
 plt.legend(['Train', 'Validation'], loc='upper left')
+output_path = 'Model accuracy.png'
+plt.savefig(output_path)
 plt.show()
 
 # Save the model in the SavedModel format
