@@ -25,7 +25,7 @@ plt.xlabel('Number of Cores')
 plt.ylabel('Acceleration')
 plt.title('Number of Cores vs Acceleration')
 plt.grid(True)
-output_path = 'lab4/task3/task3_final.png'
+output_path = 'aceleracion_vs_cores.png'
 plt.savefig(output_path)
 plt.show()
 

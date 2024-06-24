@@ -35,7 +35,7 @@ plt.bar(tasks, times, color='blue')
 plt.xlabel('Subtasks')
 plt.ylabel('Time (ms)')
 plt.title('Time taken by each subtask')
-output_path = 'lab4/task1/task1.png'
+output_path = 'tiempo_de_inferencia.png'
 plt.savefig(output_path)
 plt.show()
 
