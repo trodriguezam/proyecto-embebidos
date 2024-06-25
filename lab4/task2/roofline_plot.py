@@ -48,7 +48,7 @@ plt.legend()
 plt.grid(True, which="both", ls="--")
 
 # Guardar el gráfico como un archivo PNG
-output_path = 'lab4/task2/roofline_plot.png'
+output_path = 'roofline_plot.png'
 plt.savefig(output_path)
 
 # Mostrar el gráfico
