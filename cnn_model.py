@@ -2,38 +2,49 @@ import os
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.layers import BatchNormalization
 import matplotlib.pyplot as plt
 import pathlib
+from sklearn.utils import class_weight
+import numpy as np
 
-train_dir = 'dataset-v2/training'
-validation_dir = 'dataset-v2/validation'
+train_dir = 'dataset/training'
+validation_dir = 'dataset/validation'
 
 model = tf.keras.models.Sequential([
-    tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(96, 96, 1)),
+    tf.keras.layers.Conv2D(32, (3, 3), activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01), input_shape=(96, 96, 1)),
+    BatchNormalization(),
     tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+    tf.keras.layers.Conv2D(64, (3, 3), activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+    BatchNormalization(),
     tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
+    tf.keras.layers.Conv2D(128, (3, 3), activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+    BatchNormalization(),
     tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(256, (3, 3), activation='relu'),
+    tf.keras.layers.Conv2D(256, (3, 3), activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+    BatchNormalization(),
     tf.keras.layers.MaxPooling2D(2, 2),
     tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(512, activation='relu'),
-    tf.keras.layers.Dense(256, activation='relu'),
-    tf.keras.layers.Dense(1, activation='sigmoid') # revisar params (# de clases, f de activacion)
+    tf.keras.layers.Dense(512, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+    tf.keras.layers.Dropout(0.5),
+    tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+    tf.keras.layers.Dropout(0.5),
+    tf.keras.layers.Dense(3, activation='softmax')
 ])
 
-optimizer = Adam(learning_rate=0.001) # revisar learning rate (+ = mas preciso, - = mas rapido)
-model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy']) # revisar loss function
+optimizer = Adam(learning_rate=0.0001)
+model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 
 train_datagen = ImageDataGenerator(
     rescale=1./255,
-    rotation_range=20,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.2,
-    zoom_range=0.2,
+    rotation_range=40,
+    width_shift_range=0.3,
+    height_shift_range=0.3,
+    shear_range=0.3,
+    zoom_range=0.3,
     horizontal_flip=True,
+    brightness_range=[0.7, 1.3],
     fill_mode='nearest',
 )
 
@@ -41,7 +52,7 @@ train_generator = train_datagen.flow_from_directory(
     train_dir,
     target_size=(96, 96),
     batch_size=32,
-    class_mode='binary', # revisar class_mode
+    class_mode='categorical',
     color_mode='grayscale',
 )
 
@@ -50,7 +61,7 @@ validation_generator = validation_datagen.flow_from_directory(
     validation_dir,
     target_size=(96, 96),
     batch_size=32,
-    class_mode='binary', # revisar class_mode
+    class_mode='categorical',
     color_mode='grayscale',
 )
 
@@ -60,14 +71,14 @@ total_validation_samples = sum([len(files) for _, _, files in os.walk(validation
 steps_per_epoch = (total_train_samples // batch_size)
 validation_steps = (total_validation_samples // batch_size)
 
-NUM_EPOCHS = 200 # revisar numero de epochs
+NUM_EPOCHS = 200
 history = model.fit(
     train_generator,
-    steps_per_epoch=steps_per_epoch, # revisar steps_per_epoch (total de imagenes / batch_size)
+    steps_per_epoch=steps_per_epoch,
     epochs=NUM_EPOCHS,
     verbose=1,
     validation_data=validation_generator,
-    # validation_steps=validation_steps
+    validation_steps=validation_steps,
 )
 
 plt.plot(history.history['accuracy'])
@@ -78,26 +89,22 @@ plt.xlabel('Epoch')
 plt.legend(['Train', 'Validation'], loc='upper left')
 plt.show()
 
-# Guardar modelo en carpeta
-export_dir = "saved_model/model3"
+
+export_dir = "saved_models/model_5"
 model.export(export_dir)
 
-""" SE HACE POST-TRAINING QUANTIZATION """
 
-# Convertir a tflite
-converter = tf.lite.TFLiteConverter.from_saved_model(export_dir) # Busca en el directorio el modelo que se va a convertir a tflite
-converter.optimizations = [tf.lite.Optimize.DEFAULT] # Cuantizar
+converter = tf.lite.TFLiteConverter.from_saved_model(export_dir)
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
 
-def representative_data_gen(): # Cuantizar con data representativa
-    for i in range(100):
-        # Obtener un lote de datos
+def representative_data_gen():
+    for _ in range(100):
         input_value, _ = next(validation_generator)
         yield [input_value]
-
 
 converter.representative_dataset = representative_data_gen
 converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
 
-tflite_model = converter.convert() # Finalmente se convierte
-tflite_model_file = pathlib.Path("saved_model/model_original.tflite") # Donde se guarda
-tflite_model_file.write_bytes(tflite_model) # Ns q wea
+tflite_model = converter.convert()
+tflite_model_file = pathlib.Path("saved_models/model_5/quant_model_5.tflite")
+tflite_model_file.write_bytes(tflite_model)
