@@ -2,11 +2,9 @@ import os
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.layers import BatchNormalization
 import matplotlib.pyplot as plt
 import pathlib
-from sklearn.utils import class_weight
 import numpy as np
 
 train_dir = 'dataset/training'
@@ -71,7 +69,7 @@ total_validation_samples = sum([len(files) for _, _, files in os.walk(validation
 steps_per_epoch = (total_train_samples // batch_size)
 validation_steps = (total_validation_samples // batch_size)
 
-NUM_EPOCHS = 200
+NUM_EPOCHS = 1
 history = model.fit(
     train_generator,
     steps_per_epoch=steps_per_epoch,
@@ -90,8 +88,8 @@ plt.legend(['Train', 'Validation'], loc='upper left')
 plt.show()
 
 
-export_dir = "saved_models/model_5"
-model.export(export_dir)
+export_dir = "saved_models/model_tmp.keras"
+model.save(export_dir)
 
 
 converter = tf.lite.TFLiteConverter.from_saved_model(export_dir)
@@ -108,3 +106,34 @@ converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
 tflite_model = converter.convert()
 tflite_model_file = pathlib.Path("saved_models/model_5/quant_model_5.tflite")
 tflite_model_file.write_bytes(tflite_model)
+
+tflite_model_path = 'saved_models/model_5/quant_model_5.tflite'
+interpreter = tf.lite.Interpreter(model_path=tflite_model_path)
+interpreter.allocate_tensors()
+
+# Get input and output details
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+# Define a function to evaluate the TFLite model
+def evaluate_tflite_model(interpreter, validation_generator, steps):
+    accuracy = 0
+    total_samples = 0
+    for step in range(steps):
+        input_data, labels = next(validation_generator)
+        # Process each image in the batch individually
+        for i in range(input_data.shape[0]):  # Iterate through each image in the batch
+            single_input_data = np.expand_dims(input_data[i], axis=0)  # Add batch dimension
+            interpreter.set_tensor(input_details[0]['index'], single_input_data)
+            interpreter.invoke()
+            output_data = interpreter.get_tensor(output_details[0]['index'])
+            prediction = np.argmax(output_data, axis=1)
+            true_label = np.argmax(labels[i])
+            accuracy += np.sum(prediction == true_label)
+            total_samples += 1
+    return accuracy / total_samples 
+
+# Evaluate the model
+validation_steps = len(validation_generator)
+tflite_accuracy = evaluate_tflite_model(interpreter, validation_generator, validation_steps)
+print(f'Post-quantization accuracy: {tflite_accuracy:.4f}')
